@@ -38,8 +38,18 @@ class ScrapeRequest(BaseModel):
 @app.post("/api/scrape")
 async def trigger_scrape(req: ScrapeRequest):
     job_id = await create_job(req.url)
-    # Run the scraper in the background
-    asyncio.create_task(run_scraper(job_id, req.url, req.selector))
+    
+    # Run the scraper in a background thread to avoid Windows event loop conflicts
+    def run_in_thread(jid, url, selector):
+        import asyncio
+        import sys
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        asyncio.run(run_scraper(jid, url, selector))
+
+    import threading
+    threading.Thread(target=run_in_thread, args=(job_id, req.url, req.selector)).start()
+    
     return {"message": "Job created", "job_id": job_id}
 
 @app.get("/api/jobs")

@@ -67,24 +67,70 @@ document.addEventListener('DOMContentLoaded', () => {
             if (job.status === 'failed') statusColor = 'var(--danger)';
             if (job.status === 'running') statusColor = 'var(--accent)';
 
-            // Data truncating for display
-            let displayData = '';
+            const tr = document.createElement('tr');
+            
+            // Safe parsing of data to pass to button
+            let dataAttr = '';
+            let actionHtml = `<span class="text-muted">N/A</span>`;
             if (job.data) {
-                if (job.data.length > 50) {
-                    displayData = job.data.substring(0, 50) + '...';
-                } else {
-                    displayData = job.data;
+                try {
+                    // escape quotes for attribute
+                    dataAttr = encodeURIComponent(job.data);
+                    actionHtml = `<button class="btn btn-view" data-json="${dataAttr}" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--accent); border-radius: 4px; cursor: pointer;">View JSON</button>`;
+                } catch (e) {
+                    actionHtml = `<span class="text-muted">Invalid Data</span>`;
                 }
             }
 
-            const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>#${job.id}</td>
                 <td><a href="${job.url}" target="_blank" style="color: var(--text-primary); text-decoration: none;">${job.url}</a></td>
                 <td style="color: ${statusColor}; font-weight: 500; text-transform: capitalize;">${job.status}</td>
-                <td style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted);">${displayData || 'N/A'}</td>
+                <td>${actionHtml}</td>
             `;
             jobsTableBody.appendChild(tr);
         });
+
+        // Add event listeners to "View JSON" buttons
+        document.querySelectorAll('.btn-view').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const encodedData = e.target.getAttribute('data-json');
+                if (encodedData) {
+                    try {
+                        const rawData = decodeURIComponent(encodedData);
+                        const parsedData = JSON.parse(rawData);
+                        showModal(JSON.stringify(parsedData, null, 2));
+                    } catch (err) {
+                        showModal(decodeURIComponent(encodedData));
+                    }
+                }
+            });
+        });
     }
+
+    // Modal Handling
+    const modal = document.getElementById('dataModal');
+    const modalData = document.getElementById('modalData');
+    const closeModalBtn = document.querySelector('.close-modal');
+
+    function showModal(content) {
+        modalData.textContent = content;
+        modal.classList.add('show');
+    }
+
+    function hideModal() {
+        modal.classList.remove('show');
+        modalData.textContent = '';
+    }
+
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', hideModal);
+    }
+
+    // Close when clicking outside of modal content
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            hideModal();
+        }
+    });
 });
