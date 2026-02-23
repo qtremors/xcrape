@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span class="highlight">X-Crape</span> Engine</h1>
+            <p>Adaptive, lightweight, completely local web scraper.</p>
+        </header>
+        
+        <main>
+            <section class="card scrape-form">
+                <h2>New Job</h2>
+                <form id="scrapeForm">
+                    <div class="input-group">
+                        <label for="url">Target URL</label>
+                        <input type="url" id="url" name="url" placeholder="https://example.com" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="selector">CSS Selector (Optional)</label>
+                        <input type="text" id="selector" name="selector" placeholder=".product-title, h1, etc">
+                    </div>
+
+                    <button type="submit" class="btn primary">Start Scrape</button>
+                </form>
+            </section>
+
+            <section class="card jobs-list">
+                <h2>Recent Jobs</h2>
+                <div class="table-container">
+                    <table id="jobsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>URL</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No jobs available</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
