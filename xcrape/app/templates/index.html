@@ -4,68 +4,147 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
+    <meta name="description" content="XCrape — A Material Design themed terminal web scraper dashboard">
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1><span class="highlight">X-Crape</span> Engine</h1>
-            <p>Adaptive, lightweight, completely local web scraper.</p>
-        </header>
-        
-        <main>
-            <section class="card scrape-form">
-                <h2>New Job</h2>
-                <form id="scrapeForm">
-                    <div class="input-group">
-                        <label for="url">Target URL</label>
-                        <input type="url" id="url" name="url" placeholder="https://example.com" required>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label for="selector">CSS Selector (Optional)</label>
-                        <input type="text" id="selector" name="selector" placeholder=".product-title, h1, etc">
-                    </div>
+    <div class="scanline-overlay"></div>
 
-                    <button type="submit" class="btn primary">Start Scrape</button>
-                </form>
-            </section>
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
 
-            <section class="card jobs-list">
-                <h2>Recent Jobs</h2>
-                <div class="table-container">
-                    <table id="jobsTable">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>URL</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="4" class="text-center text-muted">No jobs available</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- Data Modal -->
-    <div id="dataModal" class="modal">
-        <div class="modal-content card">
-            <div class="modal-header">
-                <h2>Scraped Data</h2>
-                <span class="close-modal">&times;</span>
+    <div class="terminal-window">
+        <!-- Title Bar -->
+        <div class="title-bar">
+            <div class="title-bar-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
             </div>
-            <pre id="modalData" class="data-preview"></pre>
+            <div class="title-bar-text">xcrape@local:~</div>
+            <div class="title-bar-actions">
+                <span class="material-symbols-outlined" style="font-size: 16px;">terminal</span>
+            </div>
         </div>
+
+        <!-- Header -->
+        <header class="terminal-header">
+            <pre class="ascii-logo">
+██╗  ██╗ ██████╗██████╗  █████╗ ██████╗ ███████╗
+╚██╗██╔╝██╔════╝██╔══██╗██╔══██╗██╔══██╗██╔════╝
+ ╚███╔╝ ██║     ██████╔╝███████║██████╔╝█████╗
+ ██╔██╗ ██║     ██╔══██╗██╔══██║██╔═══╝ ██╔══╝
+██╔╝ ██╗╚██████╗██║  ██║██║  ██║██║     ███████╗
+╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚══════╝</pre>
+            <p class="header-sub">$ <span class="typing-text">Adaptive local web scraper engine</span><span class="cursor-blink">█</span></p>
+        </header>
+
+        <!-- Scrape Form -->
+        <section class="tui-card" id="scrapeSection">
+            <div class="card-header">
+                <span class="material-symbols-outlined">rocket_launch</span>
+                <h2>NEW JOB</h2>
+                <div class="card-header-line"></div>
+            </div>
+            <form id="scrapeForm">
+                <div class="input-row">
+                    <div class="tui-input-group">
+                        <label for="url"><span class="prompt">›</span> target_url</label>
+                        <input type="url" id="url" name="url" placeholder="https://example.com" required autocomplete="off">
+                    </div>
+                    <div class="tui-input-group">
+                        <label for="selector"><span class="prompt">›</span> css_selector <span class="optional-tag">opt</span></label>
+                        <input type="text" id="selector" name="selector" placeholder=".class, #id, tag" autocomplete="off">
+                    </div>
+                </div>
+                <button type="submit" class="tui-btn primary" id="submitBtn">
+                    <span class="material-symbols-outlined">send</span>
+                    <span class="btn-text">EXECUTE</span>
+                </button>
+            </form>
+        </section>
+
+        <!-- Jobs Table -->
+        <section class="tui-card" id="jobsSection">
+            <div class="card-header">
+                <span class="material-symbols-outlined">list_alt</span>
+                <h2>JOB QUEUE</h2>
+                <div class="card-header-line"></div>
+                <div class="refresh-indicator" id="refreshIndicator">
+                    <span class="material-symbols-outlined spin">sync</span>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table id="jobsTable">
+                    <thead>
+                        <tr>
+                            <th>PID</th>
+                            <th>TARGET</th>
+                            <th>STATUS</th>
+                            <th>TIME</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                <span class="material-symbols-outlined">inbox</span>
+                                <span>No jobs in queue. Start a scrape above.</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Detail Panel (hidden by default) -->
+        <section class="tui-card detail-panel" id="detailPanel" style="display:none;">
+            <div class="card-header">
+                <span class="material-symbols-outlined">data_object</span>
+                <h2>SCRAPED DATA <span id="detailJobId" class="detail-job-tag"></span></h2>
+                <div class="card-header-line"></div>
+                <div class="detail-actions">
+                    <button class="tui-btn small" id="exportJsonBtn" title="Export JSON">
+                        <span class="material-symbols-outlined">code</span> JSON
+                    </button>
+                    <button class="tui-btn small" id="exportCsvBtn" title="Export CSV">
+                        <span class="material-symbols-outlined">table_view</span> CSV
+                    </button>
+                    <button class="tui-btn small danger" id="closeDetailBtn" title="Close">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tab-bar" id="tabBar">
+                <button class="tab active" data-tab="meta">META</button>
+                <button class="tab" data-tab="headings">HEADINGS</button>
+                <button class="tab" data-tab="links">LINKS</button>
+                <button class="tab" data-tab="images">IMAGES</button>
+                <button class="tab" data-tab="text">TEXT</button>
+                <button class="tab" data-tab="tables">TABLES</button>
+                <button class="tab" data-tab="stats">STATS</button>
+                <button class="tab" data-tab="raw">RAW</button>
+            </div>
+
+            <div class="tab-content" id="tabContent">
+                <!-- Filled dynamically by JS -->
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="terminal-footer">
+            <span class="footer-status" id="footerStatus">IDLE</span>
+            <span class="footer-sep">│</span>
+            <span>jobs: <span id="footerJobCount">0</span></span>
+            <span class="footer-sep">│</span>
+            <span>xcrape v0.2.0</span>
+        </footer>
     </div>
 
     <script src="/static/script.js"></script>

@@ -59,20 +59,20 @@
 ```bash
 # Clone and navigate
 git clone https://github.com/qtremors/xcrape.git
-cd xcrape
+cd xcrape/xcrape
 
 # Install dependencies
 uv sync
 
 # Setup environment
-cp .env.example .env
+cp ../.env.example ../.env
 # Fill in any required values
 
 # Install Playwright browsers
 uv run playwright install chromium
 
 # Run the project
-uv run uvicorn xcrape.app.main:app --reload
+uv run uvicorn app.main:app --reload
 ```
 
 Visit **http://localhost:8000**
