@@ -96,6 +96,111 @@ async def remove_job(job_id: int):
     return {"message": "Job deleted"}
 
 
+@app.post("/api/jobs/{job_id}/rescrape")
+async def rescrape_job(job_id: int):
+    """Re-scrape the same URL from an existing job."""
+    job = await get_job(job_id)
+    if not job:
+        return JSONResponse(status_code=404, content={"error": "Job not found"})
+
+    new_job_id = await create_job(job["url"])
+
+    def run_in_thread(jid, url):
+        import sys
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        asyncio.run(run_scraper(jid, url, None))
+
+    threading.Thread(target=run_in_thread, args=(new_job_id, job["url"]), daemon=True).start()
+    return {"message": "Re-scrape started", "job_id": new_job_id}
+
+
+@app.get("/api/jobs/{job_id}/images/download-all")
+async def download_all_images(job_id: int):
+    """Download all scraped images as a ZIP file."""
+    import zipfile
+    import httpx
+
+    job = await get_job(job_id)
+    if not job:
+        return JSONResponse(status_code=404, content={"error": "Job not found"})
+    if not job.get("data"):
+        return JSONResponse(status_code=400, content={"error": "No data"})
+
+    try:
+        data = json.loads(job["data"])
+    except (json.JSONDecodeError, TypeError):
+        return JSONResponse(status_code=400, content={"error": "Invalid data"})
+
+    images = data.get("images", [])
+    if not images:
+        return JSONResponse(status_code=400, content={"error": "No images found"})
+
+    zip_buffer = io.BytesIO()
+    async with httpx.AsyncClient(follow_redirects=True, timeout=15) as client:
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            for idx, img in enumerate(images):
+                img_url = img.get("src", "")
+                if not img_url:
+                    continue
+                try:
+                    resp = await client.get(img_url)
+                    resp.raise_for_status()
+                    content_type = resp.headers.get("content-type", "image/jpeg")
+                    ext = content_type.split("/")[-1].split(";")[0]
+                    filename = f"image_{idx}.{ext}"
+                    zf.writestr(filename, resp.content)
+                except Exception:
+                    continue  # Skip failed images
+
+    zip_buffer.seek(0)
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename=xcrape_job_{job_id}_images.zip"},
+    )
+
+
+@app.get("/api/jobs/{job_id}/images/{image_index}")
+async def download_single_image(job_id: int, image_index: int):
+    """Proxy-download a single image from scraped data."""
+    import httpx
+
+    job = await get_job(job_id)
+    if not job:
+        return JSONResponse(status_code=404, content={"error": "Job not found"})
+    if not job.get("data"):
+        return JSONResponse(status_code=400, content={"error": "No data"})
+
+    try:
+        data = json.loads(job["data"])
+    except (json.JSONDecodeError, TypeError):
+        return JSONResponse(status_code=400, content={"error": "Invalid data"})
+
+    images = data.get("images", [])
+    if image_index < 0 or image_index >= len(images):
+        return JSONResponse(status_code=404, content={"error": "Image index out of range"})
+
+    img_url = images[image_index].get("src", "")
+    if not img_url:
+        return JSONResponse(status_code=400, content={"error": "No image URL"})
+
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=15) as client:
+            resp = await client.get(img_url)
+            resp.raise_for_status()
+            content_type = resp.headers.get("content-type", "image/jpeg")
+            ext = content_type.split("/")[-1].split(";")[0]
+            filename = f"image_{image_index}.{ext}"
+            return StreamingResponse(
+                io.BytesIO(resp.content),
+                media_type=content_type,
+                headers={"Content-Disposition": f"attachment; filename={filename}"},
+            )
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"error": f"Failed to fetch image: {str(e)}"})
+
+
 @app.get("/api/jobs/{job_id}/export")
 async def export_job(job_id: int, format: str = "json"):
     job = await get_job(job_id)

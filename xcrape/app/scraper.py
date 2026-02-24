@@ -1,9 +1,167 @@
+import base64
 import json
+import re
 import time
 from urllib.parse import urljoin, urlparse
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
 from .db import update_job
+
+# Known social media domains
+SOCIAL_DOMAINS = {
+    "twitter.com": "Twitter/X", "x.com": "Twitter/X",
+    "facebook.com": "Facebook", "fb.com": "Facebook",
+    "instagram.com": "Instagram",
+    "linkedin.com": "LinkedIn",
+    "github.com": "GitHub",
+    "youtube.com": "YouTube", "youtu.be": "YouTube",
+    "tiktok.com": "TikTok",
+    "reddit.com": "Reddit",
+    "discord.gg": "Discord", "discord.com": "Discord",
+    "pinterest.com": "Pinterest",
+    "mastodon.social": "Mastodon",
+    "threads.net": "Threads",
+    "twitch.tv": "Twitch",
+    "medium.com": "Medium",
+}
+
+# Technology detection patterns
+TECH_PATTERNS = {
+    "meta_generator": {},  # filled dynamically from <meta name="generator">
+    "scripts": {
+        "react": ["react", "react-dom", "reactjs"],
+        "vue": ["vue.js", "vuejs", "vue.min"],
+        "angular": ["angular", "ng-"],
+        "svelte": ["svelte"],
+        "next.js": ["_next/", "__next"],
+        "nuxt.js": ["_nuxt/", "__nuxt"],
+        "jquery": ["jquery"],
+        "bootstrap": ["bootstrap"],
+        "tailwind": ["tailwindcss", "tailwind"],
+        "webpack": ["webpack", "__webpack"],
+        "vite": ["vite", "@vite"],
+        "gatsby": ["gatsby"],
+        "remix": ["remix"],
+        "astro": ["astro"],
+    },
+    "headers": {
+        "wordpress": ["wp-content", "wp-includes", "wordpress"],
+        "shopify": ["shopify", "cdn.shopify"],
+        "wix": ["wix.com", "parastorage"],
+        "squarespace": ["squarespace"],
+        "drupal": ["drupal"],
+        "ghost": ["ghost"],
+    },
+}
+
+
+def _detect_technologies(soup: BeautifulSoup, html: str) -> list[dict]:
+    """Detect technologies used on the page."""
+    detected = []
+    seen = set()
+    html_lower = html.lower()
+
+    # Meta generator tag
+    gen = soup.find("meta", attrs={"name": "generator"})
+    if gen and gen.get("content"):
+        val = gen["content"].strip()
+        if val and val.lower() not in seen:
+            detected.append({"name": val, "source": "meta generator"})
+            seen.add(val.lower())
+
+    # Script-based detection
+    for tech, keywords in TECH_PATTERNS["scripts"].items():
+        if tech.lower() in seen:
+            continue
+        for kw in keywords:
+            if kw in html_lower:
+                detected.append({"name": tech, "source": "script/markup"})
+                seen.add(tech.lower())
+                break
+
+    # HTML pattern detection
+    for tech, keywords in TECH_PATTERNS["headers"].items():
+        if tech.lower() in seen:
+            continue
+        for kw in keywords:
+            if kw in html_lower:
+                detected.append({"name": tech, "source": "markup pattern"})
+                seen.add(tech.lower())
+                break
+
+    # Common framework indicators
+    if soup.find("div", id="__next"):
+        if "next.js" not in seen:
+            detected.append({"name": "Next.js", "source": "DOM element"})
+    if soup.find("div", id="__nuxt"):
+        if "nuxt.js" not in seen:
+            detected.append({"name": "Nuxt.js", "source": "DOM element"})
+    if soup.find("div", id="app") and any("vue" in str(s) for s in soup.find_all("script")):
+        if "vue" not in seen:
+            detected.append({"name": "Vue.js", "source": "DOM element"})
+
+    return detected
+
+
+def _extract_social_links(links: list[dict]) -> list[dict]:
+    """Identify social media links from the scraped links."""
+    social = []
+    seen_platforms = {}
+    for link in links:
+        try:
+            parsed = urlparse(link["url"])
+            domain = parsed.netloc.lower().lstrip("www.")
+            for social_domain, platform in SOCIAL_DOMAINS.items():
+                if domain == social_domain or domain.endswith("." + social_domain):
+                    if platform not in seen_platforms:
+                        seen_platforms[platform] = {
+                            "platform": platform,
+                            "url": link["url"],
+                            "text": link.get("text", ""),
+                        }
+                    break
+        except Exception:
+            continue
+    return list(seen_platforms.values())
+
+
+def _extract_structured_data(soup: BeautifulSoup) -> list[dict]:
+    """Extract JSON-LD and other structured data from the page."""
+    structured = []
+
+    # JSON-LD
+    for script in soup.find_all("script", type="application/ld+json"):
+        try:
+            data = json.loads(script.string)
+            if isinstance(data, list):
+                for item in data:
+                    structured.append({"format": "JSON-LD", "data": item})
+            else:
+                structured.append({"format": "JSON-LD", "data": data})
+        except (json.JSONDecodeError, TypeError):
+            continue
+
+    # OpenGraph (collected as a group)
+    og_tags = {}
+    for tag in soup.find_all("meta", property=re.compile(r"^og:")):
+        prop = tag.get("property", "")
+        content = tag.get("content", "")
+        if prop and content:
+            og_tags[prop] = content
+    if og_tags:
+        structured.append({"format": "OpenGraph", "data": og_tags})
+
+    # Twitter Cards
+    tc_tags = {}
+    for tag in soup.find_all("meta", attrs={"name": re.compile(r"^twitter:")}):
+        name = tag.get("name", "")
+        content = tag.get("content", "")
+        if name and content:
+            tc_tags[name] = content
+    if tc_tags:
+        structured.append({"format": "Twitter Card", "data": tc_tags})
+
+    return structured
 
 
 async def run_scraper(job_id: int, url: str, selector: str = None):
@@ -12,19 +170,29 @@ async def run_scraper(job_id: int, url: str, selector: str = None):
     try:
         await update_job(job_id, "running", None)
 
+        screenshot_b64 = None
+
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
+            page = await browser.new_page(viewport={"width": 1280, "height": 720})
 
             # Navigate with timeout handling
             try:
                 await page.goto(url, wait_until="networkidle", timeout=30000)
             except Exception as nav_error:
-                # Retry with domcontentloaded if networkidle times out
                 try:
                     await page.goto(url, wait_until="domcontentloaded", timeout=15000)
                 except Exception:
                     raise nav_error
+
+            # Capture screenshot
+            try:
+                screenshot_bytes = await page.screenshot(
+                    type="jpeg", quality=70, full_page=False
+                )
+                screenshot_b64 = base64.b64encode(screenshot_bytes).decode("ascii")
+            except Exception:
+                pass  # Screenshot is non-critical
 
             content = await page.content()
             final_url = page.url
@@ -100,7 +268,7 @@ async def run_scraper(job_id: int, url: str, selector: str = None):
         tables = []
         for table in soup.find_all("table"):
             rows_data = []
-            for row in table.find_all("tr")[:50]:  # Cap at 50 rows per table
+            for row in table.find_all("tr")[:50]:
                 cells = []
                 for cell in row.find_all(["th", "td"]):
                     cells.append(cell.get_text(strip=True)[:200])
@@ -118,11 +286,7 @@ async def run_scraper(job_id: int, url: str, selector: str = None):
                 if text:
                     items.append(text)
             if items:
-                lists.append({
-                    "type": lst.name,
-                    "items": items,
-                })
-        # Cap the number of lists stored
+                lists.append({"type": lst.name, "items": items})
         lists = lists[:20]
 
         # --- Text Content ---
@@ -141,6 +305,7 @@ async def run_scraper(job_id: int, url: str, selector: str = None):
         # --- Page Stats ---
         full_text = soup.get_text()
         word_count = len(full_text.split())
+        html_size = len(content)
 
         # --- Selector Results ---
         selector_results = None
@@ -153,6 +318,15 @@ async def run_scraper(job_id: int, url: str, selector: str = None):
                     "text": el.get_text(strip=True)[:500],
                     "html": str(el)[:1000],
                 })
+
+        # --- New: Technology Detection ---
+        technologies = _detect_technologies(soup, content)
+
+        # --- New: Social Links ---
+        social_links = _extract_social_links(all_links)
+
+        # --- New: Structured Data ---
+        structured_data = _extract_structured_data(soup)
 
         # --- Build result ---
         extracted_data = {
@@ -174,6 +348,10 @@ async def run_scraper(job_id: int, url: str, selector: str = None):
             "lists": lists,
             "text": paragraphs,
             "selector_results": selector_results,
+            "technologies": technologies,
+            "social_links": social_links,
+            "structured_data": structured_data,
+            "screenshot": screenshot_b64,
             "stats": {
                 "word_count": word_count,
                 "link_count": len(all_links),
@@ -186,6 +364,10 @@ async def run_scraper(job_id: int, url: str, selector: str = None):
                 "script_count": script_count,
                 "inline_script_count": inline_script_count,
                 "style_count": style_count,
+                "html_size_bytes": html_size,
+                "tech_count": len(technologies),
+                "social_count": len(social_links),
+                "structured_data_count": len(structured_data),
                 "load_time_seconds": elapsed,
             },
         }

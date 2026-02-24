@@ -8,6 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
+
 # Data files
 *.db
 *.sqlite3
@@ -19,3 +20,15 @@ wheels/
 
 # Playwright
 test-results/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs templates
+TempDocs/

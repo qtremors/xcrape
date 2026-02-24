@@ -1,50 +1,47 @@
 # xcrape - Tasks
 
 > **Project:** xcrape
-> **Version:** 0.1.0
+> **Version:** 0.2.0
 > **Last Updated:** 2026-02-23
-
-### Status Legend
-
-| Icon | Meaning |
-|------|---------|
-| `[ ]` | Not started |
-| `[/]` | In progress |
-| `[x]` | Completed |
 
 ---
 
 ### High Priority
 
-- [ ] [Feature] CSV/JSON Export
-  - Allow users to download scraped data in common formats.
-- [ ] [Bug] Handle Timeout Errors Better
-  - Improve error reporting when a site takes too long to load.
+- [ ] [Feature] Multi-browser Support
+  - Add options to use Firefox or WebKit in addition to Chromium.
+- [ ] [Feature] Pagination for Job List
+  - Handle 100+ jobs without performance degradation.
 
 ### Medium Priority
 
-- [ ] [Feature] Multi-browser Support
-  - Add options to use Firefox or WebKit in addition to Chromium.
-- [ ] [Refactor] Componentize Frontend JS
-  - Move inline scripts to separate files in `static/js`.
+- [ ] [Feature] Light/Dark Theme Toggle
+  - Add M3 light mode tokens and toggle switch.
+- [ ] [Feature] Keyboard Shortcuts Modal
+  - Help overlay showing all available keyboard shortcuts.
+- [ ] [Refactor] Add Type Annotations
+  - Full type hints on all Python functions and return types.
+- [ ] [Performance] Lazy Load Screenshot Data
+  - Don't include base64 screenshot in job list API; load on demand.
 
 ### Low Priority
 
-- [ ] [Docs] Add inline code comments
-  - Document complex logic in `scraper.py`.
+- [ ] [Docs] Add Inline Code Comments
+  - Document complex logic in `scraper.py` helper functions.
+- [ ] [Feature] Bulk Delete Jobs
+  - Select multiple jobs and delete at once.
+- [ ] [Feature] Link Graph Visualization
+  - Visualize internal/external link structure.
 
----
-
-### Completed
-
-- [x] [Feature] Core Scraper Architecture — `v0.1.0`
-- [x] [Feature] SQLite Persistence — `v0.1.0`
-- [x] [Docs] Migration to Standard Templates — `v0.1.0`
-
----
 
 ### Backlog / Ideas
 
+> Parking lot for ideas that aren't prioritized yet.
+
 - Scheduled scrapes (Cron jobs)
 - Proxy rotation support
-- Image/Screenshot extraction
+- Robots.txt compliance checking
+- Request header / User-Agent customization
+- Sitemap crawling (discover and scrape multiple pages)
+- Accessibility audit (basic a11y checks)
+- Page performance metrics (resource weight, request count)

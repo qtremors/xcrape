@@ -1,13 +1,14 @@
 [project]
 name = "xcrape"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "Smart local web scraper with comprehensive page analysis and Material Design 3 TUI"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "aiosqlite>=0.22.1",
     "beautifulsoup4>=4.14.3",
     "fastapi>=0.131.0",
+    "httpx>=0.28.0",
     "jinja2>=3.1.6",
     "playwright>=1.58.0",
     "python-multipart>=0.0.22",

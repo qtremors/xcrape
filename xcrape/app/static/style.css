@@ -1176,3 +1176,50 @@ tbody tr.clickable {
         font-size: 0.65rem;
     }
 }
+
+/* ── Search Bar ────────────────────────────────────────────────────────── */
+.search-bar {
+    margin-bottom: 1rem;
+}
+
+/* ── Image Thumbnails ──────────────────────────────────────────────────── */
+.image-thumb {
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--md-surface-container);
+    min-height: 40px;
+}
+
+.image-thumb img {
+    width: 100%;
+    max-height: 140px;
+    object-fit: cover;
+    display: block;
+}
+
+/* ── Section Copy Button ───────────────────────────────────────────────── */
+.section-copy-btn {
+    float: right;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    background: var(--md-surface-container);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: 9999px;
+    color: var(--md-on-surface-variant);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 200ms cubic-bezier(0.2, 0, 0, 1);
+    margin-bottom: 0.5rem;
+}
+
+.section-copy-btn:hover {
+    background: var(--md-surface-container-high);
+    border-color: var(--md-outline);
+    color: var(--md-primary);
+}

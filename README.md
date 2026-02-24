@@ -1,21 +1,28 @@
 <p align="center">
-  <img src="https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png" alt="xcrape Logo" width="120"/>
+  <img src="assets/xcrape.png" alt="xcrape Logo" width="120"/>
 </p>
 
 <h1 align="center"><a href="http://localhost:8000">xcrape</a></h1>
 
 <p align="center">
-  Smart Local Web Scraper
+  Smart Local Web Scraper — Comprehensive page analysis with a Material Design 3 terminal UI
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/FastAPI-0.1.0-blue?logo=fastapi" alt="FastAPI">
+  <img src="https://img.shields.io/badge/FastAPI-0.2.0-blue?logo=fastapi" alt="FastAPI">
   <img src="https://img.shields.io/badge/Playwright-1.58.0-blue?logo=playwright" alt="Playwright">
+  <img src="https://img.shields.io/badge/Python-3.12+-green?logo=python" alt="Python">
   <img src="https://img.shields.io/badge/License-TSL-red" alt="License">
 </p>
 
 > [!NOTE]
 > **Personal Project** 🎯 I built this to provide a lightweight, locally-hosted tool for dynamic web scraping without relying on external SaaS platforms.
+
+> [!WARNING]
+> **Local Testing Only** — This tool has only been tested against locally-hosted HTML websites. It is **not** designed or intended for scraping production websites on the internet.
+
+> [!CAUTION]
+> **Do not scrape real websites.** Scraping live sites without permission may violate their Terms of Service, get your IP blocked, or have legal consequences. Use this tool responsibly on your own local projects only.
 
 ## Live Website
 
@@ -30,18 +37,19 @@
 | Feature | Description |
 |---------|-------------|
 | 🕷️ **Dynamic Scraping** | Uses Playwright (Chromium) to handle JavaScript-heavy sites and SPAs. |
-| 💾 **Local Persistence** | Stores job status and scraped results in a local SQLite database using aiosqlite. |
-| ⚡ **Async Architecture** | Built with FastAPI and async/await for efficient concurrent processing. |
-| 🛠️ **Simple Form** | Enter a URL and optional CSS selector to pull specific text elements. |
-
----
-
-## 📸 Screenshots
-
-<p align="center">
-  <!-- Placeholder for future screenshots -->
-  <i>Dashboard screenshot coming soon...</i>
-</p>
+| 📸 **Screenshot Capture** | Takes a JPEG screenshot of every scraped page. |
+| 🧠 **Technology Detection** | Identifies 15+ frameworks/CMS (React, Vue, Next.js, WordPress, Shopify, etc.). |
+| 🔗 **Social Link Detection** | Extracts social media profiles (Twitter, GitHub, LinkedIn, YouTube, etc.). |
+| 📊 **Structured Data** | Extracts JSON-LD, OpenGraph, and Twitter Card metadata. |
+| 📋 **Comprehensive Extraction** | Meta tags, headings, all links, images, tables, lists, text, and page stats. |
+| 💾 **Local Persistence** | SQLite database with timestamps via aiosqlite. |
+| ⚡ **Async Architecture** | FastAPI with threaded Playwright workers for concurrent processing. |
+| 📤 **CSV/JSON Export** | Download scraped data as structured CSV or JSON files. |
+| 🖼️ **Image Download** | Download scraped images individually or as a bulk ZIP archive. |
+| 🔄 **Re-scrape** | One-click re-scrape of any previous URL. |
+| 🔎 **Search & Filter** | Filter jobs by URL or status in real-time. |
+| 📋 **Copy to Clipboard** | Per-section copy buttons for quick data extraction. |
+| 🎨 **Material Design 3 TUI** | Terminal-themed UI with M3 dark tonal palette and responsive layout. |
 
 ---
 
@@ -81,6 +89,7 @@ Visit **http://localhost:8000**
 
 | Variable | Required | Description |
 |----------|----------|-------------|
+| `DATABASE_URL` | No | SQLite database path (default: `sqlite+aiosqlite:///app/data/scraper.db`) |
 | `PORT` | No | Port to run the server on (default: `8000`) |
 
 ---
@@ -90,8 +99,9 @@ Visit **http://localhost:8000**
 | Layer | Technology |
 |-------|------------|
 | **Backend** | FastAPI, Pydantic, aiosqlite |
-| **Scraper** | Playwright, BeautifulSoup4 |
-| **Frontend** | Jinja2 Templates, Vanilla CSS/JS |
+| **Scraper** | Playwright (Chromium), BeautifulSoup4 |
+| **Frontend** | Jinja2 Templates, Vanilla CSS/JS, Material Design 3 |
+| **Typography** | JetBrains Mono, Material Symbols |
 | **Tooling** | Astral uv |
 
 ---
@@ -102,14 +112,18 @@ Visit **http://localhost:8000**
 xcrape/
 ├── xcrape/               # Source code
 │   ├── app/              # FastAPI application
-│   │   ├── static/       # Static assets (CSS, JS)
+│   │   ├── data/         # SQLite database storage
+│   │   ├── static/       # CSS, JS assets
 │   │   ├── templates/    # Jinja2 HTML templates
-│   │   ├── db.py         # Database interactions
+│   │   ├── db.py         # Database models and queries
 │   │   ├── scraper.py    # Playwright scraping logic
-│   │   └── main.py       # FastAPI routes
-│   └── main.py          # Entry point
+│   │   └── main.py       # FastAPI routes and app init
+│   ├── main.py           # Entry point
+│   └── pyproject.toml    # Dependency management (uv)
+├── TempDocs/             # Documentation templates
 ├── DEVELOPMENT.md        # Developer documentation
 ├── CHANGELOG.md          # Version history
+├── TASKS.md              # Planned features and known issues
 ├── LICENSE.md            # License terms
 └── README.md
 ```
@@ -129,7 +143,7 @@ xcrape/
 ## 🧪 Testing
 
 ```bash
-# Run tests (if applicable)
+# Run tests (planned)
 uv run pytest
 ```
 
